@@ -2,11 +2,17 @@
 
 import 'dart:async';
 import 'dart:developer';
+import 'dart:ui';
+
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_thermal_printer/flutter_thermal_printer.dart';
 import 'package:flutter_thermal_printer/utils/printer.dart';
+
+// import 'package:another_brother/printer_info.dart' as brother;
+import 'dart:ui' as ui;
+
 
 void main() {
   runApp(const MyApp());
@@ -56,46 +62,16 @@ class _MyAppState extends State<MyApp> {
   Future<void> printZebra() async {
     String data;
     data = '''
+    ''
+    ^XA~TA000~JSN^LT0^MNW^MTT^PON^PMN^LH0,0^JMA^PR6,6~SD15^JUS^LRN^CI0^XZ
     ^XA
-^FX Top section with logo, name and address.
-^CF0,60
-^FO50,50^GB100,100,100^FS
-^FO75,75^FR^GB100,100,100^FS
-^FO93,93^GB40,40,40^FS
-^FO220,50^FDIntershipping, Inc.^FS
-^CF0,30
-^FO220,115^FD1000 Shipping Lane^FS
-^FO220,155^FDShelbyville TN 38102^FS
-^FO220,195^FDUnited States (USA)^FS
-^FO50,250^GB700,3,3^FS
-
-^FX Second section with recipient address and permit information.
-^CFA,30
-^FO50,300^FDJohn Doe^FS
-^FO50,340^FD100 Main Street^FS
-^FO50,380^FDSpringfield TN 39021^FS
-^FO50,420^FDUnited States (USA)^FS
-^CFA,15
-^FO600,300^GB150,150,3^FS
-^FO638,340^FDPermit^FS
-^FO638,390^FD123456^FS
-^FO50,500^GB700,3,3^FS
-
-^FX Third section with bar code.
-^BY5,2,270
-^FO100,550^BC^FD12345678^FS
-
-^FX Fourth section (the two boxes on the bottom).
-^FO50,900^GB700,250,3^FS
-^FO400,900^GB3,250,3^FS
-^CF0,40
-^FO100,960^FDCtr. X34B-1^FS
-^FO100,1010^FDREF1 F00B47^FS
-^FO100,1060^FDREF2 BL4H8^FS
-^CF0,190
-^FO470,955^FDCA^FS
-
-^XZ
+    ^MMT
+    ^PW400
+    ^LL0600
+    ^LS0
+    ^FT0,50^A0N,25,24^FB111,1,0,C^FH^FDEtiquetando^FS
+    ^FT0,80^A@N,25,24,TT0003M_^FB394,1,0,C^FH^CI17^F8^FDEtiquetando^FS^CI0
+    ^PQ1,0,1,Y^XZ
         ''';
     await _flutterThermalPrinterPlugin.printData(
       bleDevices[0],
@@ -136,6 +112,80 @@ class _MyAppState extends State<MyApp> {
       });
     });
   }
+ Future<ui.Image> loadImage(String path) async {
+    final ByteData data = await rootBundle.load(path);
+    final Completer<ui.Image> completer = Completer();
+    ui.decodeImageFromList(data.buffer.asUint8List(), (ui.Image img) {
+      completer.complete(img);
+    });
+    return completer.future;
+  }
+Future<void> _printLabel() async {
+    try {
+        const platform = MethodChannel('com.example.brother_printer');
+
+//       final result = await platform.invokeMethod('printLabel', {
+//         'text': '''
+// Line 1: Até que enfim
+// Line 2:Conseguimos 
+// imprimir 
+// na Brother
+// Etiquetando
+// ''',
+//       });
+
+      // print(result);
+
+      var imageBytes = await (await loadImage('assets/etiquetando.png')).toByteData(format: ImageByteFormat.png);
+      
+      var outByteArray = Uint8List(imageBytes!.lengthInBytes);
+      for (int i = 0; i < imageBytes.lengthInBytes; i ++) {
+        outByteArray[i] = imageBytes.getUint8(i);
+      }
+
+      final result = await platform.invokeMethod('printImage', {
+        'image': outByteArray,
+      });
+      
+    } on PlatformException catch (e) {
+      print("Failed to print label: '${e.message}'.");
+    }
+  }
+//   Future<void> printerBrother() async {
+//     final printer = brother.Printer();
+//     var printInfo = brother.PrinterInfo();
+//     printInfo.printerModel = brother.Model.QL_810W;
+//     // printInfo.printMode = brother.PrintMode.FIT_TO_PAGE;
+//     // printInfo.isAutoCut = true;
+//     printInfo.port = brother.Port.USB;
+//     //printInfo.paperSize = brother.PaperSize.CUSTOM;
+//     //printInfo.labelNameIndex = QL700.ordinalFromID(QL700.W62.getId());
+
+
+    
+
+//     // Set the printer info so we can use the SDK to get the printers.
+//     await printer.setPrinterInfo(printInfo);
+    
+//     // final image = await loadImage('assets/x.png');
+//     // printer.printImage(image);
+// final paragraphStyle = ui.ParagraphStyle(
+//     textAlign: TextAlign.left,
+//     fontSize: 14.0,
+//     fontWeight: FontWeight.normal,
+//   );
+
+//   final paragraphBuilder = ui.ParagraphBuilder(paragraphStyle)
+//     ..addText('batata');
+
+//   const constraints = ui.ParagraphConstraints(width: 200.0);
+
+//   final paragraph = paragraphBuilder.build()
+//     ..layout(constraints);
+    
+//     final status = await printer.printText(paragraph);
+//     print('status::::: $status');
+//   }
 
   @override
   Widget build(BuildContext context) {
@@ -217,7 +267,9 @@ PRINT 1
           ],
         ),
         floatingActionButton: FloatingActionButton(onPressed: () {
-          printZebra();
+          //printerBrother();
+          _printLabel();
+          //printZebra();
         }),
       ),
     );
