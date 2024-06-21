@@ -200,7 +200,6 @@ class MainActivity: FlutterActivity() {
         if (printInfo.port == PrinterInfo.Port.USB) {
             val usbManager = context.getSystemService(Context.USB_SERVICE) as UsbManager
             val usbDevice = printer.getUsbDevice(usbManager)
-            val currSpecs = printer.printerSpec
 
             if (usbDevice == null) {
                 Log.e(TAG, "USB not Connected")
